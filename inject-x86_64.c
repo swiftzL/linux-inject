@@ -66,6 +66,7 @@
 void injectSharedLibrary()
 {
 	asm(
+		"push %rsp \n"
 		"push %rsi \n"
 		"push %rdx");
 		//malloc
@@ -88,7 +89,9 @@ void injectSharedLibrary()
 		"callq *%r9 \n"
 		"int $3     \n"
 		"pop %r9 \n"
-		"int $3");
+		"int $3 \n"
+	
+		);
 
 	//------------------free 
 	asm(
@@ -108,7 +111,8 @@ void injectSharedLibrary()
 		// call free()
 		"callq *%rbx \n"
 		// restore previous rbx value
-		"pop %rbx");
+		"pop %rbx \n"
+		"add %rsp,8");
 }
 
 /*
@@ -317,16 +321,14 @@ int main(int argc, char **argv)
 	// __libc_dlopen_mode.
 	printf("ptrace cont 2\n");
 	//-----------------------------------dlopen start
-  ptrace(PTRACE_CONT, target, NULL, SIGSTOP);
-	if(1) {
-		exit(0);
-	}
+//   ptrace(PTRACE_CONT, target, NULL, SIGSTOP);
+// 	if(1) {
+// 		exit(0);
+// 	}
 	//dump rip
 	ptrace_dump_memeory(target,malloc_regs.rip,0x50);
 	ptrace_step(target);
 	ptrace_cont(target);
-
-	
 
 	// check out what the registers look like after calling dlopen.
 	struct user_regs_struct dlopen_regs;
@@ -345,15 +347,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	// now check /proc/pid/maps to see whether injection was successful.
-	if (checkloaded(target, libname))
-	{
-		printf("\"%s\" successfully injected\n", libname);
-	}
-	else
-	{
-		fprintf(stderr, "could not inject \"%s\"\n", libname);
-	}
 
 	// as a courtesy, free the buffer that we allocated inside the target
 	// process. we don't really care whether this succeeds, so don't
