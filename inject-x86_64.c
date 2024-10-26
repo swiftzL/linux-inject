@@ -85,12 +85,9 @@ void injectSharedLibrary()
 		"mov %rax,%rdi \n"//so addr
 		"xor %rsi,%rsi \n" //load_mod
 		"mov $0x1,%esi \n"
-		"int $3     \n"
 		"callq *%r9 \n"
-		"int $3     \n"
 		"pop %r9 \n"
 		"int $3 \n"
-	
 		);
 
 	//------------------free 
@@ -327,25 +324,9 @@ int main(int argc, char **argv)
 // 	}
 	//dump rip
 	ptrace_dump_memeory(target,malloc_regs.rip,0x50);
-	ptrace_step(target);
+	// ptrace_step(target);
 	ptrace_cont(target);
 
-	// check out what the registers look like after calling dlopen.
-	struct user_regs_struct dlopen_regs;
-	memset(&dlopen_regs, 0, sizeof(struct user_regs_struct));
-	ptrace_getregs(target, &dlopen_regs);
-	unsigned long long libAddr = dlopen_regs.rax;
-
-	// if rax is 0 here, then __libc_dlopen_mode failed, and we should bail
-	// out cleanly.
-	if (libAddr == 0)
-	{
-		fprintf(stderr, "dlopen() failed to load %s\n", libname);
-		restoreStateAndDetach(target, addr, backup, injectSharedLibrary_size, oldregs);
-		free(backup);
-		free(newcode);
-		return 1;
-	}
 
 
 	// as a courtesy, free the buffer that we allocated inside the target
